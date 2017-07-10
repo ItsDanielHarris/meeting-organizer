@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNet.Identity;
+
+@{
+    ViewBag.Title = "Role Selection";
+    
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <section id="roleForm">
+            @using (Html.BeginForm("Role_Selection", "Home", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+            {
+                @Html.AntiForgeryToken()
+                <h4>What is your role for this meeting?</h4>
+                    <hr />
+                    <div class="form-group">
+                        <div class="col-md-10">
+                            
+                            <p>
+                                I am a <select class="form-control" name="role">
+                                    <option value="speaker">Speaker</option>
+                                    <option value="organizer">Organizer</option>
+                                </select>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-md-offset-2 col-md-10">
+                            <input type="submit" value="Go" class="btn btn-default" />
+                        </div>
+                    </div>
+            }
+        </section>
+
+    </div>
+</div>

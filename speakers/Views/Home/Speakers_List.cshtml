@@ -1,0 +1,435 @@
+﻿@using Microsoft.AspNet.Identity;
+
+@{
+    var root = Url.Content("~");
+
+    ViewBag.Title = "Speakers";
+
+
+    if (Session["role"].ToString() == "organizer")
+    {
+        <div id="end_meeting_btn_container">
+            <button id="end_meeting_btn">End Meeting</button>
+        </div>
+    }
+
+    if (Session["role"].ToString() == "speaker")
+    {
+        <form action="#" method="post" id="request_to_speak_form">
+            @{
+                if (ViewBag.isrequested)
+                {
+                    <button type="button" id="request_btn">Stop Request</button>
+                }
+                else
+                {
+                    <button type="button" id="request_btn">Request to Speak</button>
+                }
+            }
+        </form>
+        <br />
+                }
+
+                <div id="content_container">
+                    <div id="commissioners_parent">
+                        <br /><br />
+                        <ul id="commissioners_list" class="clearfix">
+
+                        </ul>
+                    </div>
+                </div>
+}
+
+<script>
+    $(document).ready(function () {
+
+        $("#end_meeting_btn").click(function () {
+            if (confirm("Are you sure you want to end the meeting?")) {
+                $.ajax({
+                    url: "@root" + "/Receiver/EndMeeting",
+                    error: function (response) {
+                        alert("error: " + response.responseText);
+                    },
+                    success: function (d) {
+                        window.location.replace("@root" + "/Account/Login");
+                    }
+                });
+            }
+        });
+
+        $("#request_btn").click(function () {
+            if ($(this).text() == "Request to Speak") {
+                if (confirm("Request to speak?")) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@root" + "/Receiver/RequestSpeaker",
+                        data: '{"email": "@User.Identity.Name"}',
+                        contentType: "application/json",
+                        error: function (response) {
+                            console.log("error: " + response.responseText);
+                        },
+                        success: function (d) {
+                            $("#request_btn").text("Stop Request");
+                            return true;
+                        }
+                    });
+                }
+            }
+            else {
+                if (confirm("Stop request?")) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@root" + "/Receiver/StopRequestSpeaker",
+                        data: '{"email": "@User.Identity.Name"}',
+                        contentType: "application/json",
+                        error: function (response) {
+                            console.log("error: " + response.responseText);
+                        },
+                        success: function (d) {
+                            $("#request_btn").text("Request to Speak");
+                            return true;
+                        }
+                    });
+                }
+            }
+
+        });
+
+                function get_speakers() {
+                    $.ajax({
+                        url: "@root" + "Receiver/get_speakers",
+                        success: function (d) {
+                            console.log(d);
+                        }
+                    });
+                }
+
+                var current_speaker = "";
+                var last_speaker = "";
+
+                function is_same_speaker() {
+                    var same = true;
+                    $.ajax({
+                            async: false,
+                            cache: false,
+                            url: "@root" + "Receiver/get_current_speaker",
+                            success: function (data) {
+                                last_speaker = current_speaker;
+                                current_speaker = data;
+                                same = current_speaker == last_speaker;
+                                console.log("Last Speaker: " + last_speaker + "\nCurrent Speaker: " + current_speaker + "Same: " + same);
+                            }
+                        });
+                    return same;
+                }
+
+                function update_speaker_list() {
+                    $("#commissioners_list").load("@Url.Action("List")");
+                }
+
+                function wait_til_change_then_update_speaker_list() {
+                    get_speakers();
+                    if (!is_same_speaker() && current_speaker != "" && last_speaker != "") {
+                        console.log("Not same");
+                        reset_speaker_time();
+                        update_speaker_list();
+                    }
+                    else {
+                        console.log("Same");
+                    }
+                }
+
+                var dragging = false;
+
+                function get_drag() {
+                    $.ajax({
+                        url: "@root" + "Receiver/GetDrag",
+                        success: function (data) {
+                            dragging = data;
+                        }
+                    });
+                }
+
+                function set_drag(drag) {
+                    $.ajax({
+                        type: "POST",
+                        data: {drag: drag},
+                        url: "@root" + "Receiver/SetDrag",
+                        success: function (data) {
+
+                        },
+                        error: function(e) {
+
+                        }
+                    });
+                }
+
+                function set_speaker_time() {
+                    if (am_i_organizer()) {
+                        $.ajax({
+                            url: "@root" + "Receiver/SetSpeakerTime",
+                            success: function (data) {
+                                console.log(data);
+                            },
+                            error: function (data) {
+                                console.log(data.responseText);
+                            }
+                        });
+                    }
+                }
+
+                //Update speakers list every 3 seconds
+                var same_speaker = true;
+                //var interval_drag = setInterval(get_drag, 500);
+
+                @Html.Raw("var interval_sort = setInterval(wait_til_change_then_update_speaker_list, 1000);");
+
+                var interval_requests = setInterval(check_speaker_requests, 3000);
+
+                var timer = {
+                    time: 180
+                };
+                var timer_countdown = new Array();
+
+                function clear_timers() {
+                    for (t = 0; t < timer_countdown.length; t++) {
+                        clearInterval(timer_countdown[t]);
+                    }
+                }
+
+                function am_i_organizer() {
+                    @{
+                        if (Session["role"].ToString() == "organizer")
+                        {
+                            @Html.Raw("return true;");
+                        }
+                        else
+                        {
+                            @Html.Raw("return false;");
+                        }
+                    }
+                }
+
+                function am_i_speaker() {
+                    if ($("#commissioners_list li:first").attr("value") == "@User.Identity.GetUserId()") {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+
+                //Initialize sortable function on speakers list
+
+                function get_time(time) {
+                    var minutes = Math.floor(time / 60);0
+                    var seconds = time - minutes * 60;
+                    var hours = Math.floor(time / 3600);
+                    time = time - hours * 3600;
+
+                    function str_pad_left(string,pad,length) {
+                        return (new Array(length+1).join(pad)+string).slice(-length);
+                    }
+
+                    var finalTime = str_pad_left(minutes,'0',2)+':'+str_pad_left(seconds,'0',2);
+                    return finalTime;
+                }
+
+                function get_time_left() {
+                    var time_left;
+                    $.ajax({
+                        async: false,
+                        cache: false,
+                        dataType: "text",
+                        url: "@root" + "Receiver/GetTimeLeft",
+                        success: function (data) {
+                            time_left = parseInt(data);
+                        }
+                    });
+                    return time_left;
+                }
+
+                function countdown() {
+                    timer.time--;
+                    if (timer.time <= 0) {
+                        $("#commissioners_list li:first .time").text("00:00");
+                    }
+                    else {
+                        $("#commissioners_list li:first .time").text(get_time(timer.time));
+                    }
+                    if (am_i_organizer()) {
+                        $.ajax({
+                            url: "@root" + "Receiver/Tick",
+                            success: function (data) {
+                                console.log(data);
+                                set_speaker_time();
+                            },
+                            error: function (data) {
+                                console.log(data.responseText);
+                            }
+                        });
+                    }
+                }
+
+                function set_timer(paused) {
+                    timer.time = get_time_left();
+                    console.log(timer.time);
+                    $("#commissioners_list li:first .time").text(get_time(timer.time));
+                    if (paused) {
+                        clear_timers();
+                    }
+                    if (!paused) {
+                        clear_timers();
+                        timer_countdown.push(setInterval(countdown, 1000));
+                    }
+                }
+
+                function reset_speaker_time() {
+                    $.ajax({
+                        url: "@root" + "Receiver/ResetTimeLeft",
+                        success: function(data) {
+                            //console.log(data);
+                            set_speaker_time();
+                            set_timer(false);
+                        },
+                        error: function(data) {
+                            console.log(data.responseText);
+                        }
+                    });
+                }
+
+                function set_speakers_order() {
+                    try {
+                        var speaker_lis = $("#commissioners_list").children();
+                        var speakers = [];
+                        var i = 0;
+                        speaker_lis.each(function() {
+                            speakers.push({Id: $(this).attr("value"), listOrder: i});
+                            i++;
+                        });
+                        $.ajax({
+                            type: "POST",
+                            data: {speakers: speakers},
+                            url: "@root"+"Receiver/SpeakersReorder",
+                            error: function (response) {
+                                console.log(response.responseText);
+                            },
+                            success: function (d) {
+                                console.log(d);
+                            }
+                        });
+                    }
+                    catch (e){
+                        console.log(e.message);
+                    }
+                }
+
+                function set_new_speaker(new_speaker) {
+                    $.ajax({
+                        type: "POST",
+                        data: { new_speaker: new_speaker },
+                        url: "@root" + "Receiver/set_new_speaker",
+                        success: function (data) {
+                            console.log(data);
+                        }
+                    });
+                }
+
+                function init_sortable() {
+                    get_speakers();
+
+                    update_speaker_list();
+
+                    set_timer(false);
+
+                    $("#commissioners_list").sortable({
+                        tolerance: 'pointer',
+                        revert: 'invalid',
+                        scroll: true,
+                        start: function (event, ui) {
+                            try {
+                                set_timer(true);
+                                ui.item.data('start_pos', ui.item.index());
+                                dragging = true;
+                                //set_drag(dragging);
+                                if (!am_i_organizer()) {
+                                    clearInterval(interval_sort);
+                                }
+                            }
+                            catch (e) {
+                                console.log(e.message);
+                            }
+
+                        },
+                        update: function (event, ui) {
+
+                            try {
+                                set_speakers_order();
+
+                                get_speakers();
+
+                                var start_pos = ui.item.data('start_pos');
+
+                                same_speaker = start_pos == ui.item.index();
+
+                                console.log("Same: " + same_speaker);
+
+                                dragging = false;
+                                //set_drag(dragging);
+
+                                if (!same_speaker) {
+                                    reset_speaker_time();
+                                }
+                                else {
+                                    set_timer(false);
+                                }
+
+                                same_speaker = true;
+                            }
+                            catch  (e) {
+                                console.log(e.message);
+                            }
+
+
+                        }
+                    });
+                }
+
+                function init_non_sortable() {
+                    get_speakers();
+                    update_speaker_list();
+                    set_timer(false);
+                }
+
+                @{
+                    if (Session["role"].ToString() == "organizer")
+                    {
+                        @Html.Raw("init_sortable();");
+                    }
+                    else
+                    {
+                        @Html.Raw("init_non_sortable();");
+                    }
+                }
+
+                function check_speaker_requests() {
+                    $.ajax({
+                        url: "@root"+"Receiver/CheckRequested",
+                        error: function (response) {
+                            console.log("error: " + response.responseText);
+                        },
+                        success: function (ids) {
+                            $("#commissioners_list li").removeClass("pulse");
+                            ids.forEach(signal_request);
+                        }
+                    });
+                }
+
+                function signal_request(id) {
+                    $("li[value='" + id + "']").addClass("pulse");
+                }
+
+                //dragging variable needs to be saved in database
+
+            });
+</script>

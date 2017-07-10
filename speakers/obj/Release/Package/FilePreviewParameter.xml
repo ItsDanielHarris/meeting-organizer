@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<parameters>
+  <parameter name="IIS Web Application Name" description="" value="Default Web Site/speakers" tags="IisApp">
+    <parameterEntry kind="ProviderPath" scope="IisApp" match="^C:\\Users\\DH3155\\Documents\\Visual\ Studio\ 2015\\Projects\\speakers\\speakers\\obj\\Release\\Package\\PackageTmp$" />
+    <parameterEntry kind="ProviderPath" scope="setAcl" match="^C:\\Users\\DH3155\\Documents\\Visual\ Studio\ 2015\\Projects\\speakers\\speakers\\obj\\Release\\Package\\PackageTmp$" />
+  </parameter>
+  <parameter name="Add write permission to App_Data Folder" description="Add write permission to App_Data folder" value="Default Web Site/speakers/App_Data" tags="Hidden">
+    <parameterEntry kind="ProviderPath" scope="setAcl" match="^C:\\Users\\DH3155\\Documents\\Visual\ Studio\ 2015\\Projects\\speakers\\speakers\\obj\\Release\\Package\\PackageTmp\\App_Data$" />
+  </parameter>
+  <parameter name="DefaultConnection-Web.config Connection String" description="" value="workstation id=CB10287;packet size=4096; Trusted_Connection=Yes;data source=10.6.1.165,49241;persist security info=False;initial catalog=speakers-dev" tags="">
+    <parameterEntry kind="XmlFile" scope="C:\\Users\\DH3155\\Documents\\Visual\ Studio\ 2015\\Projects\\speakers\\speakers\\obj\\Release\\Package\\PackageTmp\\Web\.config$" match="/configuration/connectionStrings/add[@name='DefaultConnection']/@connectionString" />
+  </parameter>
+</parameters>

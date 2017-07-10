@@ -1,0 +1,7 @@
+﻿@foreach (speakers.Models.Speaker speaker in speakers.Models.GlobalVars.current_speakers)
+{
+    TimeSpan time = TimeSpan.FromSeconds(speaker.timeLeft);
+    string str = time.ToString(@"mm\:ss");
+
+    <li value="@speaker.Id"><span class="name">@speaker.firstName @speaker.lastName</span> <span class="time">@str</span></li>
+}
